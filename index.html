@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Harish Mobiles</title>
+
+<style>
+:root{
+    --primary:#1e3c72;
+    --secondary:#2a5298;
+    --success:#28a745;
+    --danger:#dc3545;
+    --light:#f4f6f9;
+}
+
+body{
+    font-family:"Segoe UI",Arial,sans-serif;
+    background:linear-gradient(135deg,#e3f2fd,#f8f9fa);
+    margin:0;
+}
+
+.container{
+    width:92%;
+    max-width:950px;
+    margin:25px auto;
+    background:#fff;
+    padding:20px;
+    border-radius:12px;
+    box-shadow:0 8px 25px rgba(0,0,0,0.15);
+}
+
+h1{
+    text-align:center;
+    background:linear-gradient(135deg,var(--primary),var(--secondary));
+    color:#fff;
+    padding:15px;
+    border-radius:10px;
+    margin:-20px -20px 20px -20px;
+}
+h2{text-align:center;color:var(--primary);}
+
+nav{text-align:center;margin-bottom:20px;}
+nav button{
+    padding:10px 18px;
+    margin:0 5px;
+    border-radius:6px;
+    background:var(--primary);
+    color:#fff;
+    border:none;
+}
+nav button:hover{background:var(--secondary);}
+
+input,select{
+    padding:10px;
+    font-size:15px;
+    border-radius:6px;
+    border:1px solid #ccc;
+    width:100%;
+}
+
+.flex{
+    display:flex;
+    gap:10px;
+    margin-bottom:10px;
+}
+
+button{
+    padding:10px 15px;
+    font-size:15px;
+    border:none;
+    border-radius:6px;
+    cursor:pointer;
+    color:#fff;
+}
+
+.add-btn{background:#007bff;}
+.print-btn{background:var(--success);}
+.clear-btn{background:#6c757d;}
+.remove-btn{
+    background:var(--danger);
+    border-radius:50%;
+    width:32px;
+    height:32px;
+    font-size:16px;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:10px;
+}
+table th{
+    background:var(--primary);
+    color:#fff;
+    padding:10px;
+}
+table td{
+    padding:8px;
+    border:1px solid #ddd;
+    text-align:center;
+}
+
+.total{
+    text-align:right;
+    font-size:20px;
+    font-weight:bold;
+    color:var(--success);
+    margin-top:10px;
+}
+
+.hidden{display:none;}
+
+/* PRINT HEADER */
+.print-header{display:none;text-align:center;}
+.print-header h2{margin:0;font-size:26px;}
+.print-header p{margin:4px 0;font-weight:bold;}
+.print-info{display:none;font-size:14px;margin:8px 0;}
+
+/* PRINT RULES */
+@media print{
+    body *{visibility:hidden;}
+    .print-area, .print-area *{visibility:visible;}
+    .print-area{
+        position:absolute;
+        left:0;
+        top:0;
+        width:100%;
+    }
+    .print-header,.print-info{display:block;}
+
+    /* REMOVE COLUMN COMPLETELY IN PRINT */
+    th:last-child,
+    td:last-child,
+    .remove-btn{
+        display:none !important;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+<h1>Harish Mobiles</h1>
+
+<nav>
+    <button onclick="showBilling()">Billing</button>
+    <button onclick="openAdminLogin()">Admin</button>
+</nav>
+
+<!-- BILLING -->
+<div id="billingPage">
+<h2>Billing</h2>
+
+<div class="flex">
+    <select id="product"></select>
+    <input type="number" id="qty" placeholder="Quantity" min="1">
+    <button class="add-btn" onclick="addItem()">Add</button>
+</div>
+
+<div class="print-area">
+    <div class="print-header">
+        <h2>Harish Mobiles</h2>
+        <p>No-11, Jaihindpuram 2nd main road, Madurai-11</p>
+        <hr>
+    </div>
+
+    <div class="print-info">
+        Date : <span id="billDate"></span><br>
+        Bill No : <span id="billNo"></span>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Product</th>
+                <th>Price</th>
+                <th>Qty</th>
+                <th>Total</th>
+                <th>Remove</th>
+            </tr>
+        </thead>
+        <tbody id="billBody"></tbody>
+    </table>
+
+    <div class="total">
+        Grand Total: ₹ <span id="grandTotal">0</span>
+    </div>
+</div>
+
+<div class="flex">
+    <button class="print-btn" onclick="printBill()">Print Bill</button>
+    <button class="clear-btn" onclick="clearBill()">Clear</button>
+</div>
+</div>
+
+<!-- ADMIN LOGIN -->
+<div id="adminLogin" class="hidden">
+<h2>Admin Login</h2>
+<div class="flex">
+    <input type="email" id="adminId" placeholder="Admin Email">
+    <input type="password" id="adminPassword" placeholder="Password">
+    <button class="add-btn" onclick="loginAdmin()">Login</button>
+</div>
+</div>
+
+<!-- ADMIN -->
+<div id="adminPage" class="hidden">
+<h2>Inventory Management</h2>
+<div class="flex">
+    <input type="text" id="newProduct" placeholder="Product Name">
+    <input type="number" id="newPrice" placeholder="Price">
+    <button class="add-btn" onclick="addProduct()">Add</button>
+    <button class="clear-btn" onclick="removeProduct()">Remove Selected</button>
+</div>
+</div>
+
+</div>
+
+<script>
+const ADMIN_ID="harishmdu95@gmail.com";
+const ADMIN_PASS="harishadmin";
+
+let inventory=JSON.parse(localStorage.getItem("inventory"))||[
+{name:"Mobile Charger",price:499},
+{name:"Earphones",price:799},
+{name:"USB Cable",price:199}
+];
+
+let grandTotal=0;
+let billNumber=randomBill();
+
+function save(){localStorage.setItem("inventory",JSON.stringify(inventory));}
+function load(){
+product.innerHTML="<option value=''>Select Product</option>";
+inventory.forEach((i,x)=>{
+let o=document.createElement("option");
+o.value=x;o.text=i.name+" – ₹"+i.price;
+product.add(o);
+});
+}
+
+function addItem(){
+const q=Number(qty.value);
+if(product.value===""||q<=0){alert("Quantity must be greater than 0");return;}
+const i=inventory[product.value];
+const t=i.price*q;
+const r=billBody.insertRow();
+r.dataset.total=t;
+r.innerHTML=`<td>${i.name}</td><td>${i.price}</td><td>${q}</td><td>${t}</td>
+<td><button class="remove-btn" onclick="removeRow(this)">❌</button></td>`;
+grandTotal+=t;grandTotalSpan.innerText=grandTotal;qty.value="";
+}
+
+function removeRow(b){
+const r=b.parentElement.parentElement;
+grandTotal-=Number(r.dataset.total);
+grandTotalSpan.innerText=grandTotal;
+r.remove();
+}
+
+function clearBill(){
+billBody.innerHTML="";
+grandTotal=0;
+grandTotalSpan.innerText=0;
+billNumber=randomBill();
+}
+
+function randomBill(){return Math.floor(100000+Math.random()*900000);}
+
+function printBill(){
+billDate.innerText=new Date().toLocaleDateString("en-GB");
+billNo.innerText=billNumber;
+document.title=billNumber;
+window.print();
+}
+
+function openAdminLogin(){
+billingPage.classList.add("hidden");
+adminLogin.classList.remove("hidden");
+adminPage.classList.add("hidden");
+}
+function loginAdmin(){
+if(adminId.value===ADMIN_ID&&adminPassword.value===ADMIN_PASS){
+adminLogin.classList.add("hidden");
+adminPage.classList.remove("hidden");
+}else alert("Invalid credentials");
+}
+function addProduct(){
+if(newProduct.value===""||newPrice.value==="")return;
+inventory.push({name:newProduct.value,price:Number(newPrice.value)});
+save();load();newProduct.value="";newPrice.value="";
+}
+function removeProduct(){
+if(product.value==="")return;
+inventory.splice(product.value,1);
+save();load();
+}
+function showBilling(){
+billingPage.classList.remove("hidden");
+adminLogin.classList.add("hidden");
+adminPage.classList.add("hidden");
+}
+
+const billBody=document.getElementById("billBody");
+const grandTotalSpan=document.getElementById("grandTotal");
+load();
+</script>
+
+</body>
+</html>
